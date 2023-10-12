@@ -25,7 +25,7 @@
 WP manager is designed to help users handle WordPress websites in the most secure fashion while showcasing the commands it's about to run before running them to get the user's opinion on whether the commands are valid or not.
 
 ### For example:
-![alt text](https://ncode.codes/media/WP-manager-SC-example.png)
+![alt text](https://github.com/Noam-Alum/WP-manager/blob/main/WP-manager-SC-example.png?raw=true)
 
 The script not only validates correct user input but also runs a background check for each variable it can! (new path, MySQL root password... etc) to ensure a smooth usage of the script.
 
