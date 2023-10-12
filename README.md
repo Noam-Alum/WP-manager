@@ -28,7 +28,8 @@ WP manager is designed to help users handle WordPress websites in the most secur
 ![alt text](https://github.com/Noam-Alum/WP-manager/blob/main/WP-manager-SC-example.png?raw=true)
 
 The script not only validates correct user input but also runs a background check for each variable it can! (new path, MySQL root password... etc) to ensure a smooth usage of the script.
-
+### Like in here:
+![alt text](https://github.com/Noam-Alum/WP-manager/blob/main/WP-manager-UI-example.png?raw=true)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
