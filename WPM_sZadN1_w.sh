@@ -15,7 +15,6 @@
 # CHECK SSH CONNECTION
 function CHECK_ssh_f {
     CHECK_ssh="$(ssh "$remoteUserP@$RemoteHost" <<EOF
-{
             echo "hello"
 EOF &> /dev/null
 )"
