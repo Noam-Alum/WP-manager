@@ -11,6 +11,34 @@
 # Visit ncode.codes for more scripts like this :)
 #
 
+## EOF FUNCTIONS
+# CHECK SSH CONNECTION
+function CHECK_ssh_f {
+    CHECK_ssh="$(ssh "$remoteUserP@$RemoteHost" <<EOF
+{
+            echo "hello"
+EOF &> /dev/null
+)"
+                
+    if [ "$?" != 0 ]; then
+        echo -e "|$C_Error| COULD NOT CONNECT TO \"$C_remote\" AS \"$C_user\"! |$C_Error|"
+        MigrateSiteExternal
+    fi
+}
+# CHECK SSH CONNECTION
+
+# CHECK IF REMOTE PATH EXIST
+function RemothPathCheck_F {
+RemothPathCheck="$(ssh "$remoteUserP@$RemoteHost" <<EOF
+if [ ! -e "$remotePath" ]; then
+    echo "NOT_EXIST"
+fi
+EOF &> /dev/null
+)"
+}
+# CHECK IF REMOTE PATH EXIST
+## EOF FUNCTIONS
+
 # WP MANAGER
     # CASE IN CTRL+C
         function cleanup() {
@@ -64,7 +92,123 @@
 
     # EXTERNAL MIGRATION
         function MigrateSiteExternal {
-            echo "Not ready yet :)"
+            # ------------------------------------------------------------------------------------------------------- > WAS NOT CHECKED
+            # STOP SCRIPT
+                if [ "$ISnoam" != "YES" ]; then
+                    echo "Not ready yet :)"
+                    exit 0
+                fi
+            # STOP SCRIPT
+
+            # COLOR
+                ColoRs Err_S red !!!
+                ColoRs C_Error red ERROR
+            # COLOR
+
+            # GET USER INPUT AND CHECK
+                function remoteLocation_F {
+
+                    read -p "What is the host of new location? : " RemoteHost
+
+                    # COLOR
+                        ColoRs C_remote red $RemoteHost
+                    # COLOR
+
+                    if [ -z "$RemoteHost" ]; then
+                            remoteLocation_F
+                    elif [ "$(ping -c 1 -W 1 "$RemoteHost" >/dev/null 2>&1; echo $?)" != "0" ]; then
+                        echo -e "|$C_Error| The host $C_remote is unreachable |$C_Error|"
+                        remoteLocation_F
+                    else
+                        echo -e "Are you sure that $C_remote is the right host? "
+                        GUSER_answer
+                        if [ "$USER_answer" == "Y" ]; then
+                            echo "OK."
+                        else
+                            remoteLocation_F
+                        fi
+                    fi
+                }
+
+                function remoteUser_F {
+
+                    read -p "What is the user you want to use to access $RemoteHost? : " remoteUser
+
+                    # COLOR
+                        ColoRs C_user red $remoteUser
+                    # COLOR
+
+                    if [ -z "$remoteUser" ]; then
+                        remoteUser_F
+                    else
+                        echo -e "Are you sure that $C_user is the right user? "
+                        GUSER_answer
+                        if [ "$USER_answer" == "Y" ]; then
+                            echo "OK."
+                        else
+                            remoteUser_F
+                        fi
+                    fi
+                }
+
+                # GET PASSWORD - MIGHT USE THE REGULAR SSH INPUT FOR A PASSWORD.
+                    # function remoteUser_Password_F {
+                    #     read -p "What is the password for $RemoteHost? : " remoteUserP
+
+                    #     # COLOR
+                    #         ColoRs C_Rpassword red $remoteUserP
+                    #     # COLOR
+
+                    #     if [ -z "$remoteUserP" ]; then
+                    #         remoteUser_Password_F
+                    #     else
+
+                    #         echo -e "Are you sure that $C_Rpassword is the right password for $C_user? "
+                    #         GUSER_answer
+                    #         if [ "$USER_answer" == "Y" ]; then
+                    #             echo "OK."
+                    #         else
+                    #             remoteUser_Password_F
+                    #         fi
+                    #     fi
+                    # }
+                # GET PASSWORD - MIGHT USE THE REGULAR SSH INPUT FOR A PASSWORD.
+
+                CHECK_ssh_f
+
+                function remotePath_F {
+                    read -p "What is the remote path in $RemoteHost? : " remotePath
+
+                    # COLOR
+                        ColoRs C_Rpath red $remotePath
+                    # COLOR
+
+                    RemothPathCheck_F
+
+                    if [ -z "$remotePath" ]; then
+                        remotePath_F
+                    elif [ "$RemothPathCheck" != "NOT_EXIST" ]
+                        echo -e "|$C_Error| REMOTH PATH \"$C_Rpath\" DOES NOT EXIST IN \"$C_remote\"! |$C_Error|"
+                        remotePath_F
+                    else
+                        echo -e "Are you sure that $C_Rpath is the right path? "
+                        GUSER_answer
+                        if [ "$USER_answer" == "Y" ]; then
+                            echo "OK."
+                        else
+                            remotePath_F
+                        fi
+                    fi
+                }
+
+                remotePath_F
+                remoteLocation_F
+                remoteUser_F
+                remoteUser_Password_F
+
+                echo -e "Remotehost : $RemoteHost\nR User : $remoteUser\nR_P : $remoteUserP\n remote path: $remotePath"   
+            # GET USER INPUT AND CHECK
+            # ------------------------------------------------------------------------------------------------------- > WAS NOT CHECKED
         }
     # EXTERNAL MIGRATION
 
