@@ -13,9 +13,9 @@
     <br />
     <br />
     ·
-    <a href="https://github.com/othneildrew/Best-README-Template/issues">Report Bug</a>
+    <a href="https://github.com/Noam-Alum/WP-manager/issues">Report Bug</a>
     ·
-    <a href="https://github.com/othneildrew/Best-README-Template/issues">Request Feature</a>
+    <a href="https://github.com/Noam-Alum/WP-manager/issues">Request Feature</a>
   </p>
 </div>
 
