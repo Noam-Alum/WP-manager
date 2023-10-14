@@ -11,33 +11,6 @@
 # Visit ncode.codes for more scripts like this :)
 #
 
-## EOF FUNCTIONS
-# CHECK SSH CONNECTION
-function CHECK_ssh_f {
-    CHECK_ssh="$(ssh "$remoteUserP@$RemoteHost" <<EOF
-            echo "hello"
-EOF &> /dev/null
-)"
-                
-    if [ "$?" != 0 ]; then
-        echo -e "|$C_Error| COULD NOT CONNECT TO \"$C_remote\" AS \"$C_user\"! |$C_Error|"
-        MigrateSiteExternal
-    fi
-}
-# CHECK SSH CONNECTION
-
-# CHECK IF REMOTE PATH EXIST
-function RemothPathCheck_F {
-RemothPathCheck="$(ssh "$remoteUserP@$RemoteHost" <<EOF
-if [ ! -e "$remotePath" ]; then
-    echo "NOT_EXIST"
-fi
-EOF &> /dev/null
-)"
-}
-# CHECK IF REMOTE PATH EXIST
-## EOF FUNCTIONS
-
 # WP MANAGER
     # CASE IN CTRL+C
         function cleanup() {
@@ -91,7 +64,6 @@ EOF &> /dev/null
 
     # EXTERNAL MIGRATION
         function MigrateSiteExternal {
-            # ------------------------------------------------------------------------------------------------------- > WAS NOT CHECKED
             # STOP SCRIPT
                 if [ "$ISnoam" != "YES" ]; then
                     echo "Not ready yet :)"
@@ -103,18 +75,19 @@ EOF &> /dev/null
                 ColoRs Err_S red !!!
                 ColoRs C_Error red ERROR
             # COLOR
-
+            
             # GET USER INPUT AND CHECK
                 function remoteLocation_F {
-
-                    read -p "What is the host of new location? : " RemoteHost
+                    read -p "What is the host of the new location? : " RemoteHost
+                    export RemoteHost
 
                     # COLOR
-                        ColoRs C_remote red $RemoteHost
+                    ColoRs C_remote red $RemoteHost
+                    ColoRs C_SUCCESs green SUCCESS
                     # COLOR
 
                     if [ -z "$RemoteHost" ]; then
-                            remoteLocation_F
+                        remoteLocation_F
                     elif [ "$(ping -c 1 -W 1 "$RemoteHost" >/dev/null 2>&1; echo $?)" != "0" ]; then
                         echo -e "|$C_Error| The host $C_remote is unreachable |$C_Error|"
                         remoteLocation_F
@@ -128,13 +101,14 @@ EOF &> /dev/null
                         fi
                     fi
                 }
+                remoteLocation_F
 
                 function remoteUser_F {
-
                     read -p "What is the user you want to use to access $RemoteHost? : " remoteUser
+                    export remoteUser
 
                     # COLOR
-                        ColoRs C_user red $remoteUser
+                    ColoRs C_user red $remoteUser
                     # COLOR
 
                     if [ -z "$remoteUser" ]; then
@@ -150,50 +124,57 @@ EOF &> /dev/null
                     fi
                 }
 
-                # GET PASSWORD - MIGHT USE THE REGULAR SSH INPUT FOR A PASSWORD.
-                    # function remoteUser_Password_F {
-                    #     read -p "What is the password for $RemoteHost? : " remoteUserP
+                remoteUser_F
+                function SSH_port_F {
+                    read -p "What is the port you want to use to access $RemoteHost through SSH? : " SSH_port
+                    export SSH_port
 
-                    #     # COLOR
-                    #         ColoRs C_Rpassword red $remoteUserP
-                    #     # COLOR
+                    # COLOR
+                    ColoRs C_SSH_port red $SSH_port
+                    # COLOR
 
-                    #     if [ -z "$remoteUserP" ]; then
-                    #         remoteUser_Password_F
-                    #     else
+                    if [ -z "$SSH_port" ]; then
+                        SSH_port_F
+                    else
+                        echo -e "Are you sure that $C_SSH_port is the right port to access SSH? "
+                        GUSER_answer
+                        if [ "$USER_answer" == "Y" ]; then
+                            echo "OK."
+                        else
+                            SSH_port_F
+                        fi
+                    fi
+                }
 
-                    #         echo -e "Are you sure that $C_Rpassword is the right password for $C_user? "
-                    #         GUSER_answer
-                    #         if [ "$USER_answer" == "Y" ]; then
-                    #             echo "OK."
-                    #         else
-                    #             remoteUser_Password_F
-                    #         fi
-                    #     fi
-                    # }
-                # GET PASSWORD - MIGHT USE THE REGULAR SSH INPUT FOR A PASSWORD.
-
-                CHECK_ssh_f
+                SSH_port_F
 
                 function remotePath_F {
-                    read -p "What is the remote path in $RemoteHost? : " remotePath
+                    read -p "What is the path to the new directory in $RemoteHost? : " remotePath
+                    export remotePath
 
                     # COLOR
                         ColoRs C_Rpath red $remotePath
                     # COLOR
 
-                    RemothPathCheck_F
-
                     if [ -z "$remotePath" ]; then
-                        remotePath_F
-                    elif [ "$RemothPathCheck" != "NOT_EXIST" ]
-                        echo -e "|$C_Error| REMOTH PATH \"$C_Rpath\" DOES NOT EXIST IN \"$C_remote\"! |$C_Error|"
                         remotePath_F
                     else
                         echo -e "Are you sure that $C_Rpath is the right path? "
                         GUSER_answer
                         if [ "$USER_answer" == "Y" ]; then
                             echo "OK."
+                            # CHECK REMOTE PATH && CONNECTION
+                                RemotePathCheck=$(ssh -p $SSH_port -o ConnectTimeout=3 "$remoteUser@$RemoteHost" "if [ ! -e \"$remotePath\" ]; then echo \"NOT_EXIST\"; fi")
+                                if [ "$?" != 0 ]; then
+                                    echo -e "|$C_Error| COULD NOT CONNECT TO \"$C_remote\" AS \"$C_user\"! |$C_Error|"
+                                    MigrateSiteExternal
+                                elif [ "$RemotePathCheck" == "NOT_EXIST" ]; then
+                                    echo -e "|$C_Error| COULD NOT FIND \"$C_Rpath\" IN \"$C_remote\"! |$C_Error|"
+                                    remotePath_F
+                                else
+                                    echo -e "$C_SUCCESs, connected to $C_remote successfully."
+                                fi
+                            # CHECK REMOTE PATH && CONNECTION
                         else
                             remotePath_F
                         fi
@@ -201,13 +182,103 @@ EOF &> /dev/null
                 }
 
                 remotePath_F
-                remoteLocation_F
-                remoteUser_F
-                remoteUser_Password_F
-
-                echo -e "Remotehost : $RemoteHost\nR User : $remoteUser\nR_P : $remoteUserP\n remote path: $remotePath"   
             # GET USER INPUT AND CHECK
-            # ------------------------------------------------------------------------------------------------------- > WAS NOT CHECKED
+
+            # SHOW PREVIEW
+                # VARS
+                    NEW_owner=$remoteUser
+                # VARS
+
+                # COLOR
+                    ColoRs C_SSH_port cyan $SSH_port
+                    ColoRs C_tar_file green "$Tar_File"
+                    ColoRs C_remoteUser cyan $remoteUser
+                    ColoRs C_RemoteHost cyan $RemoteHost
+                    ColoRs C_remotePath green $remotePath
+                    ColoRs C_CurrentDir green $CurrentDir
+                    ColoRs C_tar_opt cyan xzf
+                    ColoRs C_remove_what orange "$Tar_File $CurrentDir $sql_NAME"
+                    ColoRs C_tar_file_R orange "$Tar_File"
+                    ColoRs C_remove red 'rm -rf'
+                    ColoRs C_newdir_Owner $NEW_owner
+                # COLOR
+
+                echo -e "$Err_S ABOUT TO RUN THE FOLLOWING COMMANDS ON REMOTE SERVER: $Err_S"
+                echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
+                echo -e "# # LOCAL"
+                echo -e "# rsync -avz -e "ssh -p $C_SSH_port" $C_Tar_File $C_remoteUser@$C_RemoteHost:$C_remotePath <- move $C_tar_file to $C_remotePath in $C_RemoteHost\n#"
+                echo -e "# # EXTERNAL"
+                echo -e "# cd $C_remotePath <- go to the $C_remotePath directory in $C_RemoteHost\n#"
+                echo -e "# tar $C_tar_opt $C_tar_file <- extract $C_tar_file\n#"
+                echo -e "# mv $C_CurrentDir/* .; mv $C_CurrentDir/.htaccess . <- move all files from $C_tar_file to $C_remotePath\n#"
+                echo -e "# $C_remove $C_remove_what <- $C_explane_REMOVE $C_tar_file and $C_remotePath\n#"
+                echo -e "# chown -R $C_newdir_Owner.$C_newdir_Owner * .htaccess <- change the owner of the files to the new owner\#"
+                echo -e "# # LOCAL"
+                echo -e "# $C_remove $C_tar_file_R <- remove the tar.gz file from local server.\n#"
+                echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
+                GUSER_answer
+            # SHOW PREVIEW
+
+            if [ "$USER_answer" == "Y" ]; then
+                function RunRemoteCommands_F {
+                    # RUN COMMANDS
+                        export ERROR_count="0"
+                        echo -e "Password for rsync command:"
+                        rsync -avz -e "ssh -p $SSH_port" $Tar_File $remoteUser@$RemoteHost:$remotePath &> /dev/null
+                        check_COMMAND
+                        
+                        echo -e "\nPassword for the rest of the commands"
+                        RemoteSshCommandsRes="$(ssh -p $SSH_port "$remoteUser@$RemoteHost" "
+                            # IMPORT CHECK COMMANDS
+                                function check_COMMAND {
+                                    if [ \"\$?\" != \"0\" ]; then
+                                        export ERROR_count=$(( ${ERROR_count} + 1 ))
+                                    fi
+                                }
+                            # IMPORT CHECK COMMANDS
+
+                            # RUN REMOTE COMMANDS
+                                ERROR_count=\"0\"
+                                cd $remotePath
+                                check_COMMAND
+                                tar xzf $Tar_File
+                                check_COMMAND
+                                chown -R $NEW_owner.$NEW_owner * .htaccess
+                                check_COMMAND
+                                mv $CurrentDir/* .
+                                check_COMMAND
+                                mv $CurrentDir/.htaccess .
+                                check_COMMAND
+                                rm -rf $CurrentDir $sql_NAME $Tar_File $0
+                                check_COMMAND
+                                echo \"ERRORCOUNT \$ERROR_count\"
+                            # RUN REMOTE COMMANDS
+                        ")"
+                        rm -rf 
+                        ERROR_count="$(echo "$RemoteSshCommandsRes" | grep "$ERRORCOUNT" | awk {'print $NF'})"
+                    # RUN COMMANDS
+
+                    # CHECK FOR ERRORS
+                        if [ "$ERROR_count" == "0" ]; then
+                            # COLOR
+                                ColoRs C_SUCCESs green SUCCESS
+                            # COLOR
+
+                            echo -e "$C_SUCCESs!"
+                            exit 0
+                            # ---------------------------------------------------------------------------------------------------------------------------------------------------------------> USER IS HERE NEED TO ADD\GET DB AND S&R
+                        else
+                            ColoRs C_Error red ERROR
+                            echo -e "|$C_Error| got an error while running commands. Try again. (CTRL+C to exit) |$C_Error|"
+                            RunRemoteCommands_F
+                        fi
+                    # CHECK FOR ERRORS
+                }
+                RunRemoteCommands_F
+            else
+                echo "OK."
+                exit 0
+            fi
         }
     # EXTERNAL MIGRATION
 
