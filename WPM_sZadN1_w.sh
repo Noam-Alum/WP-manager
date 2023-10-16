@@ -82,8 +82,8 @@
                     export RemoteHost
 
                     # COLOR
-                    ColoRs C_remote red $RemoteHost
-                    ColoRs C_SUCCESs green SUCCESS
+                        ColoRs C_remote red $RemoteHost
+                        ColoRs C_SUCCESs green SUCCESS
                     # COLOR
 
                     if [ -z "$RemoteHost" ]; then
@@ -197,7 +197,7 @@
                     ColoRs C_remotePath green $remotePath
                     ColoRs C_CurrentDir green $CurrentDir
                     ColoRs C_tar_opt cyan xzf
-                    ColoRs C_remove_what orange "$Tar_File $CurrentDir $sql_NAME"
+                    ColoRs C_remove_what orange "$Tar_File $CurrentDir"
                     ColoRs C_tar_file_R orange "$Tar_File"
                     ColoRs C_remove red 'rm -rf'
                     ColoRs C_newdir_Owner $NEW_owner
@@ -206,7 +206,7 @@
                 echo -e "$Err_S ABOUT TO RUN THE FOLLOWING COMMANDS ON REMOTE SERVER: $Err_S"
                 echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
                 echo -e "# # LOCAL"
-                echo -e "# rsync -avz -e "ssh -p $C_SSH_port" $C_Tar_File $C_remoteUser@$C_RemoteHost:$C_remotePath <- move $C_tar_file to $C_remotePath in $C_RemoteHost\n#"
+                echo -e "# rsync -avz -e "ssh -p $C_SSH_port" $C_tar_file $C_remoteUser@$C_RemoteHost:$C_remotePath <- move $C_tar_file to $C_remotePath in $C_RemoteHost\n#"
                 echo -e "# # EXTERNAL"
                 echo -e "# cd $C_remotePath <- go to the $C_remotePath directory in $C_RemoteHost\n#"
                 echo -e "# tar $C_tar_opt $C_tar_file <- extract $C_tar_file\n#"
@@ -224,9 +224,24 @@
                     # RUN COMMANDS
                         export ERROR_count="0"
                         echo -e "Password for rsync command:"
-                        rsync -avz -e "ssh -p $SSH_port" $Tar_File $remoteUser@$RemoteHost:$remotePath &> /dev/null
+                        rsync -avz -e "ssh -p $SSH_port" $Tar_File $remoteUser@$RemoteHost:$remotePath > /dev/null
                         check_COMMAND
-                        
+                        if [ "$ERROR_count" != "0" ]; then
+                            # COLOR
+                                ColoRs C_Error red ERROR
+                                ColoRs C_SUCCESs green SUCCESS
+                            # COLOR
+
+                            echo -e "|$C_Error| RSYNC FAILD! TRY SCP? |$C_Error|"
+                            GUSER_answer
+                            if [ "$USER_answer" == "Y" ]; then
+                                scp -P $SSH_port $Tar_File $remoteUser@$RemoteHost:$remotePath
+                            else
+                                echo "OK. exiting."
+                                exit 0
+                            fi
+                        fi
+
                         echo -e "\nPassword for the rest of the commands"
                         RemoteSshCommandsRes="$(ssh -p $SSH_port "$remoteUser@$RemoteHost" "
                             # IMPORT CHECK COMMANDS
@@ -243,18 +258,18 @@
                                 check_COMMAND
                                 tar xzf $Tar_File
                                 check_COMMAND
-                                chown -R $NEW_owner.$NEW_owner * .htaccess
+                                chown -R $NEW_owner.$NEW_owner *
                                 check_COMMAND
+                                chown -R $NEW_owner.$NEW_owner .htaccess
                                 mv $CurrentDir/* .
                                 check_COMMAND
                                 mv $CurrentDir/.htaccess .
                                 check_COMMAND
-                                rm -rf $CurrentDir $sql_NAME $Tar_File $0
+                                rm -rf $CurrentDir $Tar_File $0
                                 check_COMMAND
                                 echo \"ERRORCOUNT \$ERROR_count\"
                             # RUN REMOTE COMMANDS
                         ")"
-                        rm -rf 
                         ERROR_count="$(echo "$RemoteSshCommandsRes" | grep "$ERRORCOUNT" | awk {'print $NF'})"
                     # RUN COMMANDS
 
@@ -265,8 +280,443 @@
                             # COLOR
 
                             echo -e "$C_SUCCESs!"
-                            exit 0
-                            # ---------------------------------------------------------------------------------------------------------------------------------------------------------------> USER IS HERE NEED TO ADD\GET DB AND S&R
+                            
+                        # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------> NOT CHECKED NEED TO CHECK
+
+                            echo "To search and replace to $NEW_dom we need new database & database user."
+                            GUSER_answer
+
+                            if [ "$USER_answer" == "Y" ]; then
+                                echo "Would you like to create them? "
+                                GUSER_answer
+                                if [ "$USER_answer" == "Y" ]; then
+                                    # GET USER INPUT AND CHECK
+                                        # CHECK MYSQL ROOT PASSWORD
+                                            function get_MYSQL_root {
+                                                read -p "Remote mysql root password : " Rdbrp
+                                                while [ -z "$Rdbrp" ]
+                                                do
+                                                    get_MYSQL_root
+                                                done
+
+                                                MYSQLcheck=$(ssh -p $SSH_port -o ConnectTimeout=3 "$remoteUser@$RemoteHost" "mysql -u root -p\"$Rdbrp\" -e \"SHOW DATABASES;\" &> /dev/null;echo \$?")
+                                                while [ $MYSQLcheck -ne 0 ]
+                                                do
+                                                    ColoRs C_Error red ERROR
+                                                    echo -e "|$C_Error| \"$Rdbrp\" IS INCORRECT! |$C_Error|"
+                                                    get_MYSQL_root
+                                                done
+                                            }
+                                            get_MYSQL_root
+                                        # CHECK MYSQL ROOT PASSWORD
+
+                                        # CHECK DB
+                                            function get_newDB {
+                                                ColoRs C_notuse_q red "'"
+                                                ColoRs C_Error red ERROR
+                                                read -p "New database name : " new_database_name
+                                                echo -e "Are you sure that $new_database_name is the name you want?"
+                                                GUSER_answer
+                                                while [ -z "$new_database_name" ]
+                                                do
+                                                    get_newDB
+                                                done
+                                                if [ "$USER_answer" == "Y" ]; then
+                                                    echo "OK."
+                                                        if [ ! -z "$(echo $new_database_name | grep "'" )" ]; then
+                                                            echo -e "|$C_Error| THE DATABASE NAME \"$new_database_name\" HAS A $C_notuse_q IN IT! |$C_Error|"
+                                                            get_newDB
+                                                        fi
+                                                else
+                                                    get_newDB
+                                                    while [ -z "$new_database_name" ]
+                                                    do
+                                                        get_newDB
+                                                    done
+                                                fi
+                                            }
+
+                                            function get_newDB_USER  {
+                                                ColoRs C_notuse_q red "'"
+                                                ColoRs C_Error red ERROR
+                                                read -p "New database user name : " new_database_user
+                                                echo -e "Are you sure that $new_database_user is the name you want?"
+                                                GUSER_answer
+                                                while [ -z "$new_database_user" ]
+                                                do
+                                                    get_newDB_USER
+                                                done
+                                                if [ "$USER_answer" == "Y" ]; then
+                                                    echo "OK."
+                                                    if [ ! -z "$(echo $new_database_user | grep "'" )" ]; then
+                                                        echo -e "|$C_Error| THE USERNAME \"$new_database_user\" HAS A $C_notuse_q IN IT! |$C_Error|"
+                                                        get_newDB_USER
+                                                    fi
+                                                else
+                                                    get_newDB_USER
+                                                    while [ -z "$new_database_user" ]
+                                                    do
+                                                        get_newDB_USER
+                                                    done
+                                                fi
+                                            }
+                                            function get_newDB_pass  {
+                                                # COLOR
+                                                    ColoRs C_new_database_password red $new_database_password
+                                                    ColoRs C_Error red ERROR
+                                                    ColoRs C_notuse_q red "'"
+                                                # COLOR
+                                                read -p "New database user password : " new_database_password
+                                                echo -e "Are you sure that $new_database_password is the password you want?"
+                                                GUSER_answer
+                                                while [ -z "$new_database_password" ]
+                                                do
+                                                    get_newDB_pass
+                                                done
+                                                if [ "$USER_answer" == "Y" ]; then
+                                                    echo "OK."
+                                                    
+                                                    if [ ! -z "$(echo $new_database_password | grep "'" )" ]; then
+                                                        echo -e "|$C_Error| THE PASSWORD \"$new_database_password\" HAS A $C_notuse_q IN IT! |$C_Error|"
+                                                        get_newDB_pass
+                                                    fi
+                                                    
+                                                    while [ -z "$new_database_password" ]
+                                                    do
+                                                        get_newDB_pass
+                                                    done
+                                                fi
+                                            }
+                                            get_newDB
+                                            get_newDB_USER
+                                            get_newDB_pass
+                                        # CHECK DB
+                                    # GET USER INPUT AND CHECK
+
+                                    # COLORS
+                                        ColoRs C_SUCCESs green SUCCESS
+                                        ColoRs Err_S red !!!
+
+                                        ColoRs C_db_p cyan $new_database_password
+                                        ColoRs C_db_u cyan $new_database_user
+                                        ColoRs C_db_d cyan $new_database_name
+                                        ColoRs C_Rdbrp cyan $Rdbrp
+                                    # COLORS
+
+                                    # PEVIEW
+                                        echo -e "$Err_S ABOUT TO RUN THE FOLLOWING COMMANDS ON REMOTE SERVER: $Err_S"
+                                        echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -\n# REMOTE HOST:"
+                                        echo -e "# mysql -u root -p\"$C_Rdbrp\" -e \"CREATE DATABASE $C_db_d;\" <- create the new database.\n#"
+                                        echo -e "# mysql -u root -p\"$C_Rdbrp\" -e \"CREATE USER $C_db_u@localhost IDENTIFIED BY '$C_db_p';\" <- create the new user.\n#"
+                                        echo -e "# mysql -u root -p\"$C_Rdbrp\" -e \"GRANT ALL PRIVILEGES ON $C_db_d.* TO $C_db_u@localhost IDENTIFIED BY '$C_db_p';\" <- give the new user all privileges.\n#"
+                                        echo -e "# mysql -u root -p\"$C_Rdbrp\" -e \"FLUSH PRIVILEGES;\" <- flushing the newly assigned privileges.\n#"
+                                        echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
+                                    # PEVIEW
+                                    GUSER_answer
+
+                                    if [ "$USER_answer" == "Y" ]; then
+                                        # RUN COMMANDS
+                                            RemoteSshCommandsRes="$(ssh -p $SSH_port "$remoteUser@$RemoteHost" "
+                                                # IMPORT CHECK COMMANDS
+                                                    function check_COMMAND {
+                                                        if [ \"\$?\" != \"0\" ]; then
+                                                            export ERROR_count=$(( ${ERROR_count} + 1 ))
+                                                        fi
+                                                    }
+                                                # IMPORT CHECK COMMANDS
+
+                                                # RUN REMOTE COMMANDS
+                                                    ERROR_count=\"0\"
+                                                    mysql -u root -p\"$Rdbrp\" -e \"CREATE DATABASE $new_database_name;\"
+                                                    check_COMMAND
+                                                    mysql -u root -p\"$Rdbrp\" -e \"CREATE USER $new_database_user@localhost IDENTIFIED BY '$new_database_password';\"
+                                                    check_COMMAND
+                                                    mysql -u root -p\"$Rdbrp\" -e \"GRANT ALL PRIVILEGES ON $new_database_name.* TO $new_database_user@localhost IDENTIFIED BY '$new_database_password';\"
+                                                    check_COMMAND
+                                                    mysql -u root -p\"$Rdbrp\" -e \"FLUSH PRIVILEGES;\"
+                                                    check_COMMAND
+                                                    echo \"ERRORCOUNT \$ERROR_count\"
+                                                # RUN REMOTE COMMANDS
+                                            ")"
+                                            ERROR_count="$(echo "$RemoteSshCommandsRes" | grep "$ERRORCOUNT" | awk {'print $NF'})"
+                                        # RUN COMMANDS
+
+                                        if [ "$ERROR_count" != 0]; then
+                                            ColoRs C_Error red ERROR
+                                            echo -e "|$C_Error| got an error while running commands. EXITING |$C_Error|"
+                                            rm -rf $0
+                                            exit 1
+                                        fi
+                                    else
+                                        echo "OK."
+                                        exit 0
+                                    fi
+                                else
+                                    # GET USER INPUT AND CHECK
+                                        ColoRs C_note red NOTE
+                                        echo "|$C_note| ON THE REMOMTE SERVER |$C_note|"
+
+                                        function new_db_name {
+                                            read -p "database name : " new_database_name
+                                            # COLOR
+                                                ColoRs C_new_database_name red $new_database_name
+                                                ColoRs C_notuse_q red "'"
+                                                ColoRs C_Error red ERROR
+                                            # COLOR
+
+                                            if [ ! -z "$(echo $new_database_name | grep "'" )" ]; then
+                                                echo -e "|$C_Error| THE DATABASE NAME \"$new_database_name\" HAS A $C_notuse_q IN IT! |$C_Error|"
+                                                new_db_name
+                                            fi
+
+                                            while [ -z "$new_database_name" ]
+                                            do
+                                                new_db_name
+                                            done
+                                            echo -e "Are you sure $C_new_database_name is the database name you want?"
+                                            GUSER_answer
+                                            if [ "$USER_answer" == "Y" ]; then
+                                                echo "OK."
+                                            else
+                                                new_db_name
+                                            fi
+                                        }
+
+                                        function new_db_username {
+                                            read -p "database user name : " new_database_user
+                                            # COLOR
+                                                ColoRs C_new_database_user red $new_database_user
+                                                ColoRs C_notuse_q red "'"
+                                                ColoRs C_Error red ERROR
+                                            # COLOR
+
+                                            if [ ! -z "$(echo $new_database_user | grep "'" )" ]; then
+                                                echo -e "|$C_Error| THE USERNAME \"$new_database_user\" HAS A $C_notuse_q IN IT! |$C_Error|"
+                                                new_db_username
+                                            fi
+
+                                            while [ -z "$new_database_user" ]
+                                            do
+                                                new_db_username
+                                            done
+                                            echo -e "Are you sure $C_new_database_user is the username you want?"
+                                            GUSER_answer
+                                            if [ "$USER_answer" == "Y" ]; then
+                                                echo "OK."
+                                            else
+                                                new_db_username
+                                            fi
+                                        }
+
+                                        function new_db_password {
+                                            read -p "database user password : " new_database_password
+                                            # COLOR
+                                                ColoRs C_new_database_password red $new_database_password
+                                                ColoRs C_Error red ERROR
+                                                ColoRs C_notuse_q red "'"
+                                            # COLOR
+
+                                            if [ ! -z "$(echo $new_database_password | grep "'" )" ]; then
+                                                echo -e "|$C_Error| THE PASSWORD \"$new_database_password\" HAS A $C_notuse_q IN IT! |$C_Error|"
+                                                new_db_password
+                                            fi
+
+                                            while [ -z "$new_database_password" ]
+                                            do
+                                                new_db_password
+                                            done
+                                            echo -e "Are you sure $C_new_database_password is the password you want?"
+                                            GUSER_answer
+                                            if [ "$USER_answer" == "Y" ]; then
+                                                echo "OK."
+                                                if [ ! -z "$(echo $new_database_password | grep -q "'" )" ]; then
+                                                    echo -e "|$C_Error| THE PASSWORD \"$C_new_database_password\" HAS A $C_notuse_q IN IT! |$C_Error|"
+                                                    new_db_password
+                                                fi
+                                            else
+                                                new_db_password
+                                            fi
+                                        }
+
+                                        new_db_name
+                                        new_db_username
+                                        new_db_password
+
+                                        MYSQLcheck=$(ssh -p $SSH_port -o ConnectTimeout=3 "$remoteUser@$RemoteHost" "mysql -u \"$new_database_user\" -p\"$new_database_password\" -e \"use $new_database_name\" &>/dev/null;echo \$?")
+                                        while [ $MYSQLcheck -ne 0 ]
+                                        do
+                                            ColoRs C_Error red ERROR
+                                            echo -e "|$C_Error| \"$new_database_user\" DOESNT HAVE THE RIGHT PRIVILAGES ON \"$new_database_name\" OR IT DOES NOT EXIST ! |$C_Error|"
+                                            new_db_name
+                                            new_db_username
+                                            new_db_password
+                                        done
+                                    # GET USER INPUT AND CHECK
+                                fi
+
+                                # COLORS
+                                    ColoRs C_SUCCESs green SUCCESS
+                                    ColoRs Err_S red !!!
+                                    ColoRs C_database_name orange $database_name
+                                    ColoRs C_new_database_name yellow $new_database_name
+
+                                    ColoRs C_database_username orange $user_name
+                                    ColoRs C_new_database_username yellow $new_database_user
+
+                                    ColoRs C_database_password orange $database_password
+                                    ColoRs C_new_database_password yellow $new_database_password
+
+                                    ColoRs C_db_p cyan $new_database_password
+                                    ColoRs C_db_u cyan $new_database_user
+                                    ColoRs C_db_d cyan $new_database_name
+                                    ColoRs C_sql_name cyan $sql_NAME
+
+                                    ColoRs C_OLD_dom orange $OLD_dom
+                                    ColoRs C_NEW_dom yellow $NEW_dom
+
+                                    ColoRs C_RM_location orange "$sql_NAME"
+                                    ColoRs C_explane_REMOVE red REMOVE
+                                # COLORS
+
+                                # PREVIEW
+                                    echo -e "$Err_S ABOUT TO RUN THE FOLLOWING COMMANDS ON REMOTE HOST: $Err_S"
+                                    echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
+                                    echo -e "# sed -i \"s/$C_database_name/$C_new_database_name/g\" wp-config.php <- change database name from $C_database_name to $C_new_database_name\n#"
+                                    echo -e "# sed -i \"s/$C_database_username/$C_new_database_username/g\" wp-config.php <- change user name from $C_database_username to $C_new_database_username\n#"
+                                    echo -e "# sed -i \"s/$C_database_password/$C_new_database_password/g\" wp-config.php <- change password from $C_database_password to $C_new_database_password\n#"
+                                    echo -e "# mysql -p$C_db_p -u $C_db_u $C_db_d < $C_sql_name <- import $C_sql_name to $C_db_d.\n#"
+                                    echo -e "# $C_remove_sql $C_sql_name <- remove the sql file.\n#s"
+                                    echo -e "# $C_remove_sql $C_RM_location <- $C_explane_REMOVE $C_RM_location\n#"
+                                    echo -e "# wp search-replace '//$C_OLD_dom' '//$C_NEW_dom' --allow-root --all-tables --recurse-objects <- search and replace from $C_OLD_dom to $C_NEW_dom"
+                                    echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
+                                # PREVIEW
+
+                                GUSER_answer
+                                if [ "$USER_answer" == "Y" ]; then
+                                    # RUN COMMANDS
+                                        RemoteSshCommandsRes="$(ssh -p $SSH_port "$remoteUser@$RemoteHost" "
+                                            # IMPORT CHECK COMMANDS
+                                                function check_COMMAND {
+                                                    if [ \"\$?\" != \"0\" ]; then
+                                                        export ERROR_count=$(( ${ERROR_count} + 1 ))
+                                                    fi
+                                                }
+                                            # IMPORT CHECK COMMANDS
+
+                                            # RUN REMOTE COMMANDS
+                                                ERROR_count=\"0\"
+                                                sed -i "s/$database_name/$new_database_name/g" wp-config.php
+                                                check_COMMAND
+                                                sed -i "s/$user_name/$new_database_user/g" wp-config.php
+                                                check_COMMAND
+                                                sed -i "s/$database_password/$new_database_password/g" wp-config.php
+                                                check_COMMAND
+                                                mysql -p$new_database_password -u $new_database_user $new_database_name < $sql_NAME
+                                                check_COMMAND
+                                                rm -rf $sql_NAME
+                                                wp search-replace "//$OLD_dom" "//$NEW_dom" --allow-root --all-tables --recurse-objects
+                                                check_COMMAND
+                                                rm -rf $0
+                                                check_COMMAND
+                                                echo \"ERRORCOUNT \$ERROR_count\"
+                                            # RUN REMOTE COMMANDS
+                                        ")"
+                                        ERROR_count="$(echo "$RemoteSshCommandsRes" | grep "$ERRORCOUNT" | awk {'print $NF'})"
+                                    # RUN COMMANDS
+
+                                    if [ "$ERROR_count" != 0]; then
+                                        ColoRs C_Error red ERROR
+                                        echo -e "|$C_Error| got an error while running commands. EXITING |$C_Error|"
+                                        rm -rf $0
+                                        exit 1
+                                    fi
+
+                                    # CHECK FOR ELEMENTOR
+                                    if wp plugin is-active elementor --allow-root; then
+                                        # PREVIEW
+                                            echo "Elementor detected."
+                                            echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
+                                            echo -e "$Err_S ABOUT TO RUN THE FOLLOWING COMMANDSON REMOTE HOST: $Err_S"
+                                            echo -e "# wp elementor replace-urls https://$C_OLD_dom https://$C_NEW_dom --force --allow-root <- search and replace from $C_OLD_dom to $C_NEW_dom\n#"
+                                            echo -e "# wp elementor replace-urls https://www.$C_OLD_dom https://www.$C_NEW_dom --force --allow-root <- search and replace from www.$C_OLD_dom to www.$C_NEW_dom\n#"
+                                            echo -e "# wp elementor flush-css --allow-root <- flush elementors cache.\n#"
+                                            echo -e "# wp elementor library sync --force --allow-root <- sync elementors library\n#"
+                                            echo -e "# wp elementor sync_library --force --allow-root <- sync elementors library\n#"
+                                            echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
+                                        # PREVIEW
+                                        GUSER_answer
+                                        if [ "$USER_answer" == "Y" ]; then
+                                            # RUN COMMANDS
+                                                RemoteSshCommandsRes="$(ssh -p $SSH_port "$remoteUser@$RemoteHost" "
+                                                    # IMPORT CHECK COMMANDS
+                                                        function check_COMMAND {
+                                                            if [ \"\$?\" != \"0\" ]; then
+                                                                export ERROR_count=$(( ${ERROR_count} + 1 ))
+                                                            fi
+                                                        }
+                                                    # IMPORT CHECK COMMANDS
+
+                                                    # RUN REMOTE COMMANDS
+                                                        ERROR_count=\"0\"
+                                                        wp elementor replace-urls https://$OLD_dom https://$NEW_dom --force --allow-root
+                                                        check_COMMAND
+                                                        wp elementor replace-urls https://www.$OLD_dom https://www.$NEW_dom --force --allow-root
+                                                        check_COMMAND
+                                                        wp elementor flush-css --allow-root
+                                                        check_COMMAND
+                                                        wp elementor library sync --force --allow-root
+                                                        check_COMMAND
+                                                        wp elementor sync_library --force --allow-root
+                                                        check_COMMAND
+                                                        echo \"ERRORCOUNT \$ERROR_count\"
+                                                    # RUN REMOTE COMMANDS
+                                                ")"
+                                                ERROR_count="$(echo "$RemoteSshCommandsRes" | grep "$ERRORCOUNT" | awk {'print $NF'})"
+                                            # RUN COMMANDS
+
+                                            if [ "$ERROR_count" != 0]; then
+                                                ColoRs C_Error red ERROR
+                                                echo -e "|$C_Error| got an error while running commands. EXITING |$C_Error|"
+                                                rm -rf $0
+                                                exit 1
+                                            fi
+
+                                        else
+                                            echo "OK."
+                                            exit 0
+                                        fi
+                                    fi
+
+                                    if [ "$ERROR_count" -eq 0 ]; then
+
+                                        # SEARCH FOR OLD DOMIAN AND SEARCH FOR OLD PATH
+                                        FindOldDOP="$(ssh -p $SSH_port "$remoteUser@$RemoteHost" "grep -rl \"$OLD_dom\"; grep -rl \"$CurrentDirPath\"")"
+                                        if [ ! -z "$FindOldDOP" ]; then
+                                            # COLOR
+                                                ColoRs C_note red NOTE
+                                            # COLOR
+
+                                            echo -e "|$C_note| FOUND THE OLD DOMAIN $C_OLD_dom OR OLD PATH IN FILES! |$C_note|"
+                                            echo -e "$FindOldDOP"
+                                        fi
+
+                                        echo -e "\n$C_SUCCESs, $C_OLD_dom has been changed to $C_NEW_dom"
+                                        exit 0
+                                    else
+                                        ColoRs C_Error red ERROR
+                                        echo -e "|$C_Error| got an error while running commands. |$C_Error|"
+                                        exit 1
+                                    fi
+                                else
+                                    echo "OK."
+                                fi    
+                            else
+                                echo "OK."
+                                exit 0
+                            fi
+                            
+                        # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------> NOT CHECKED NEED TO CHECK
+ 
                         else
                             ColoRs C_Error red ERROR
                             echo -e "|$C_Error| got an error while running commands. Try again. (CTRL+C to exit) |$C_Error|"
@@ -275,6 +725,7 @@
                     # CHECK FOR ERRORS
                 }
                 RunRemoteCommands_F
+
             else
                 echo "OK."
                 exit 0
@@ -461,8 +912,8 @@
                         GUSER_answer
 
                         if [ "$USER_answer" == "Y" ]; then
-                        echo "Would you like to create them? "
-                        GUSER_answer
+                            echo "Would you like to create them? "
+                            GUSER_answer
                             if [ "$USER_answer" == "Y" ]; then
                                 # GET USER INPUT AND CHECK
                                     # CHECK MYSQL ROOT PASSWORD
