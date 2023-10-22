@@ -632,11 +632,11 @@
                                     fi
 
                                     # CHECK FOR ELEMENTOR
-                                    if wp plugin is-active elementor --allow-root; then
+                                    if [ wp plugin is-active elementor --allow-root ]; then
                                         # PREVIEW
                                             echo "Elementor detected."
-                                            echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
                                             echo -e "$Err_S ABOUT TO RUN THE FOLLOWING COMMANDSON REMOTE HOST: $Err_S"
+                                            echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
                                             echo -e "# wp elementor replace-urls https://$C_OLD_dom https://$C_NEW_dom --force --allow-root <- search and replace from $C_OLD_dom to $C_NEW_dom\n#"
                                             echo -e "# wp elementor replace-urls https://www.$C_OLD_dom https://www.$C_NEW_dom --force --allow-root <- search and replace from www.$C_OLD_dom to www.$C_NEW_dom\n#"
                                             echo -e "# wp elementor flush-css --allow-root <- flush elementors cache.\n#"
@@ -1223,11 +1223,11 @@
                                 fi
 
                                 # CHECK FOR ELEMENTOR
-                                if wp plugin is-active elementor --allow-root; then
+                                if [ wp plugin is-active elementor --allow-root ]; then
                                     # PREVIEW
                                         echo "Elementor detected."
-                                        echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
                                         echo -e "$Err_S ABOUT TO RUN THE FOLLOWING COMMANDS: $Err_S"
+                                        echo -e "- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - -"
                                         echo -e "# wp elementor replace-urls https://$C_OLD_dom https://$C_NEW_dom --force --allow-root <- search and replace from $C_OLD_dom to $C_NEW_dom\n#"
                                         echo -e "# wp elementor replace-urls https://www.$C_OLD_dom https://www.$C_NEW_dom --force --allow-root <- search and replace from www.$C_OLD_dom to www.$C_NEW_dom\n#"
                                         echo -e "# wp elementor flush-css --allow-root <- flush elementors cache.\n#"
