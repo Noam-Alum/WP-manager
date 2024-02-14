@@ -9,7 +9,7 @@
   <p align="center">
     WordPress websites handler
     <br />
-    <a href="https://ncode.codes/assets/Documents/WP%20MANAGER.html"><strong>Explore the docs »</strong></a>
+    <a href="https://alum.sh/assets/Documents/WP%20manager.html"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     ·
@@ -39,7 +39,7 @@ The script not only validates correct user input but also runs a background chec
 
 You can use the WP-manager script where ever you want !
 Just use 
-<a href="https://ncode.codes/assets/single_snippet/Single_codes.php?code=WPM"><strong>WP-manager</strong></a> and you are good to go!
+<a href="https://alum.sh/assets/single_snippet/Single_codes.php?code=WPM"><strong>WP-manager</strong></a> and you are good to go!
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Installation
@@ -54,7 +54,7 @@ Or
 
 1. Install the script
   ```sh
-  wget https://ncode.codes/files/WPM_sZadN1_w.sh
+  wget https://alum.sh/files/WPM_sZadN1_w.sh
   ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -69,7 +69,7 @@ Or
 ```
 OR
 ```sh
-wget -q https://ncode.codes/files/WPM_sZadN1_w.sh; chmod +x WPM_sZadN1_w.sh; ./WPM_sZadN1_w.sh; rm -rf WPM_sZadN1_w.sh
+wget -q https://alum.sh/files/WPM_sZadN1_w.sh; chmod +x WPM_sZadN1_w.sh; ./WPM_sZadN1_w.sh; rm -rf WPM_sZadN1_w.sh
 ```
 
 <!-- LICENSE -->
