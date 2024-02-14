@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# © Ncode. All rights reserved
+# © Noam Alum. All rights reserved
 # 
 # WP manager - WordPress manager
 # Written by Noam Alum
 # Use at your own risk.
 #
-# Documentation at https://ncode.codes/assets/single_snippet/Single_codes.php?code=WPM
+# Documentation at https://alum.sh/assets/single_snippet/Single_codes.php?code=WPM
 #
-# Visit ncode.codes for more scripts like this :)
+# Visit alum.sh for more scripts like this :)
 #
 
 # WP MANAGER
